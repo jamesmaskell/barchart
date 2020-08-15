@@ -1,9 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
 	console.log("We are now alive");
 
-	containerHeight = window.innerHeight - 50;
-	containerWidth = window.innerWidth - 50;
-	containerPadding = 20;
+	containerHeight = window.innerHeight - 200;
+	containerWidth = window.innerWidth - 200;
+	containerPadding = 50;
 
 	getData().then((data) => {
 		let container = createContainer(containerHeight, containerWidth);
@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			containerWidth,
 			containerPadding
 		);
-		//createAxis(scaleArray, data.data);
+		createAxis(scaleArray, containerHeight, containerPadding);
 		createBars(
 			scaleArray,
 			data.data,
@@ -23,6 +23,28 @@ document.addEventListener("DOMContentLoaded", () => {
 		);
 	});
 });
+
+function createAxis(scaleArray, containerHeight, containerPadding) {
+	let xScale = scaleArray[0];
+	let yScale = scaleArray[1];
+
+	let yAxis = d3.axisLeft(yScale);
+	let xAxis = d3.axisBottom(xScale);
+
+	d3.select("svg")
+		.append("g")
+		.attr("id", "y-axis")
+		.attr("transform", "translate(" + containerPadding + ",0)")
+		.call(yAxis);
+	d3.select("svg")
+		.append("g")
+		.attr("id", "x-axis")
+		.attr(
+			"transform",
+			"translate(0," + (containerHeight - containerPadding) + ")"
+		)
+		.call(xAxis);
+}
 
 function getData() {
 	let url =
@@ -39,13 +61,18 @@ function createScales(
 	let yMax = d3.max(dataset, (d) => d[1]);
 	let yScale = d3.scaleLinear();
 	yScale
-		.domain([yMax, 0])
+		.domain([0, yMax])
 		.range([containerHeight - containerPadding, containerPadding]);
 
-	let xScale = d3.scaleLinear();
+	let xScale = d3.scaleTime();
+
+	console.log(d3.min(dataset, (d) => d[0]));
+
+	let xMin = d3.min(dataset, (d) => d[0]);
+	let xMax = d3.max(dataset, (d) => d[0]);
 
 	xScale
-		.domain([0, dataset.length])
+		.domain([new Date(xMin), new Date(xMax)])
 		.range([containerPadding, containerWidth - containerPadding]);
 
 	return [xScale, yScale];
@@ -68,19 +95,25 @@ function createBars(
 	let xScale = scaleArray[0];
 	let yScale = scaleArray[1];
 
-	console.log(xScale(275), dataset.length);
-
 	let columnWidth = (containerWidth - containerPadding * 2) / dataset.length;
-	let barWidth = columnWidth - 3;
+	let barWidth = columnWidth - 2;
+
+	console.log(xScale(243.1));
+	console.log(xScale(14000));
 
 	d3.select("svg")
 		.selectAll("rect")
 		.data(dataset)
 		.enter()
 		.append("rect")
-		.attr("width", barWidth)
-		.attr("height", (d) => yScale(d[1]) - containerPadding)
-		.attr("x", (d, i) => xScale(i))
-		.attr("y", (d) => containerHeight - yScale(d[1]))
-		.attr("fill", "blue");
+		.attr("class", "bar")
+		.attr("data-date", (d) => d[0])
+		.attr("data-gdp", (d) => d[1])
+		.attr("width", 3)
+		.attr("height", (d) => containerHeight - yScale(d[1]) - containerPadding)
+		.attr("x", (d) => xScale(new Date(d[0])))
+		.attr("y", (d) => yScale(d[1]))
+		.attr("fill", "blue")
+		.append("title")
+		.text((d) => d[0]);
 }
